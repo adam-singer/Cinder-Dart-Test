@@ -1,4 +1,3 @@
-library helloworld;
 
 get _printClosure => (s) {
   try {

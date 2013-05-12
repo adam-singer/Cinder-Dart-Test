@@ -12,10 +12,6 @@ const char* VM_FLAGS[] = {
 //	 "--trace_compiler"
 };
 
-static void* openFileCallback(const char* name, bool write) {
-	return fopen(name, write ? "w" : "r");
-}
-
 #define LOG_V ci::app::console() << __func__ << " | "
 #define LOG_E LOG_V << __LINE__ << " | " << " *** ERROR *** : "
 
@@ -59,6 +55,7 @@ class DartTestApp : public AppNative {
 	static Dart_Isolate createIsolateAndSetup(const char* script_uri, const char* main, void* data, char** error);
 	static Dart_Handle libraryTagHandler( Dart_LibraryTag tag, Dart_Handle library, Dart_Handle urlHandle );
 	static Dart_Handle checkError( Dart_Handle handle );
+	static void* openFileCallback(const char* name, bool write);
 	static void readFileCallback(const uint8_t** data, intptr_t* fileLength, void* stream );
 	static void writeFileCallback(const void* data, intptr_t length, void* file);
 	static void closeFileCallback(void* file);
@@ -192,6 +189,11 @@ void DartTestApp::invoke( const char* function, int argc, Dart_Handle* args )
 	}
 
 	return;
+}
+
+void* DartTestApp::openFileCallback(const char* name, bool write)
+{
+	return fopen(name, write ? "w" : "r");
 }
 
 void DartTestApp::readFileCallback(const uint8_t** data, intptr_t* fileLength, void* stream )
