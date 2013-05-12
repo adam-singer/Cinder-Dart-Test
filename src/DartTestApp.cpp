@@ -2,7 +2,7 @@
 #include "cinder/gl/gl.h"
 #include "cinder/Utilities.h"
 
-#include "include/dart_api.h"
+#include "dart_api.h"
 
 const char* VM_FLAGS[] = {
 	"--enable-checked-mode"
