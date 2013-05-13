@@ -122,13 +122,6 @@ void DartTestApp::setup()
 	Dart_Handle source = checkError( Dart_NewStringFromCString( scriptContents.c_str() ) );
 	checkError( Dart_LoadScript( url, source, 0, 0 ) );
 
-	// apparently we need to exit scope / isolate and re-enter, or else we get "error: expected: current_class().is_finalized()"
-	Dart_ExitScope();
-	Dart_ExitIsolate();
-
-	Dart_EnterIsolate( isolate );
-    Dart_EnterScope();
-
 	// apparently 'something' must be called before swapping in print,
 	// else she blows up with: parser.cc:4996: error: expected: current_class().is_finalized()
 	invoke( "setup" );
@@ -138,7 +131,6 @@ void DartTestApp::setup()
 		LOG_E << "Unable to find root library" << endl;
 		return;
 	}
-
 
 	// load in our custom _printCloser, which maps back to Log
 	Dart_Handle corelib = checkError( Dart_LookupLibrary( Dart_NewStringFromCString( "dart:core" ) ) );
