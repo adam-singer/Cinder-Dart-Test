@@ -24,6 +24,11 @@ if (Dart_IsError(result)) {						\
 	return false;								\
 }
 
+struct FunctionLookup {
+	const char* name;
+	Dart_NativeFunction function;
+};
+
 const char* GetArgAsString(Dart_NativeArguments arguments, int idx) {
 	char** error;
 	Dart_Handle handle = Dart_GetNativeArgument( arguments, idx );
@@ -40,6 +45,27 @@ void Log(Dart_NativeArguments arguments) {
 	Dart_EnterScope();
 	std::cout << GetArgAsString(arguments, 0) << std::endl;
 	Dart_ExitScope();
+}
+
+FunctionLookup function_list[] = {
+    {"Log", Log},
+};
+
+Dart_NativeFunction ResolveName(Dart_Handle name, int argc) {
+	if (!Dart_IsString(name)) return NULL;
+	Dart_NativeFunction result = NULL;
+	Dart_EnterScope();
+	const char* cname;
+	char** error; // TODO: this should be in the check result macro
+	CHECK_RESULT( Dart_StringToCString( name, &cname ) );
+	for (int i = 0; function_list[i].name != NULL; ++i) {
+		if (strcmp(function_list[i].name, cname) == 0) {
+			result = function_list[i].function;
+			break;
+		}
+	}
+	Dart_ExitScope();
+	return result;
 }
 
 using namespace ci;
@@ -94,20 +120,32 @@ void DartTestApp::setup()
 	string scriptContents = loadString( script );
 
 	Dart_Handle source = checkError( Dart_NewStringFromCString( scriptContents.c_str() ) );
-	Dart_Handle mainDart = checkError( Dart_LoadScript( url, source, 0, 0 ) );
+	checkError( Dart_LoadScript( url, source, 0, 0 ) );
 
 	// apparently we need to exit scope / isolate and re-enter, or else we get "error: expected: current_class().is_finalized()"
 	Dart_ExitScope();
 	Dart_ExitIsolate();
 
-	// load in our custom _printCloser, which maps back to Log
-
 	Dart_EnterIsolate( isolate );
     Dart_EnterScope();
 
+	// apparently 'something' must be called before swapping in print,
+	// else she blows up with: parser.cc:4996: error: expected: current_class().is_finalized()
+	invoke( "setup" );
+
+	Dart_Handle library = Dart_RootLibrary();
+	if ( Dart_IsNull( library ) ) {
+		LOG_E << "Unable to find root library" << endl;
+		return;
+	}
+
+
+	// load in our custom _printCloser, which maps back to Log
 	Dart_Handle corelib = checkError( Dart_LookupLibrary( Dart_NewStringFromCString( "dart:core" ) ) );
-	Dart_Handle print = checkError( Dart_GetField( mainDart, Dart_NewStringFromCString( "_printClosure" ) ) );
+	Dart_Handle print = checkError( Dart_GetField( library, Dart_NewStringFromCString( "_printClosure" ) ) );
 	checkError( Dart_SetField( corelib, Dart_NewStringFromCString( "_printClosure" ), print ) );
+
+	checkError( Dart_SetNativeResolver( library, ResolveName ) );
 
 	invoke( "main" );
 
@@ -143,6 +181,8 @@ Dart_Handle DartTestApp::libraryTagHandler( Dart_LibraryTag tag, Dart_Handle lib
 {
 	const char* url;
 	Dart_StringToCString(urlHandle, &url);
+	LOG_V << "url: " << url;
+	
 	if (tag == kCanonicalizeUrl) {
 		return urlHandle;
 	}
