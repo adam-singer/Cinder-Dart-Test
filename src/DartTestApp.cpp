@@ -48,6 +48,7 @@ void Log(Dart_NativeArguments arguments) {
 	Dart_ExitScope();
 }
 
+// TODO: may be able to use Dart_CurrentIsolateData to associate these values with app instance
 static ColorA sCircleColor = ColorA::white();
 static size_t sCircleSegments = 5;
 
@@ -112,6 +113,7 @@ class DartTestApp : public AppNative {
   public:
 	void setup();
 	void update();
+	void keyDown( KeyEvent event ) override;
 	void draw();
 
 	static Dart_Isolate createIsolateAndSetup(const char* script_uri, const char* main, void* data, char** error);
@@ -122,12 +124,14 @@ class DartTestApp : public AppNative {
 	static void writeFileCallback(const void* data, intptr_t length, void* file);
 	static void closeFileCallback(void* file);
 
+	void loadScript();
 	void invoke( const char* function, int argc = 0, Dart_Handle* args = NULL );
+
+	Dart_Isolate mIsolate;
 };
 
 void DartTestApp::setup()
 {
-	DataSourceRef script = loadResource( "main.dart" );
 
 	// init dart and create Isolate
 	LOG_V << "Setting VM Options" << endl;
@@ -139,17 +143,22 @@ void DartTestApp::setup()
 
 	LOG_V << "Dart_Initialize complete." << endl;
 
+	loadScript();
+}
+
+void DartTestApp::loadScript()
+{
+	DataSourceRef script = loadAsset( "main.dart" );
 	const char *scriptPath = script->getFilePath().c_str();
 	char *error = NULL;
-	Dart_Isolate isolate = createIsolateAndSetup( scriptPath, "main", NULL, &error );
-	if( ! isolate ) {
+	mIsolate = createIsolateAndSetup( scriptPath, "main", NULL, &error );
+	if( ! mIsolate ) {
 		LOG_E << "could not create isolate: " << error << endl;
 		assert( 0 );
 	}
-	assert( isolate == Dart_CurrentIsolate() );
+	assert( mIsolate == Dart_CurrentIsolate() );
 
-	// load script
-
+//	Dart_EnterIsolate( mIsolate );
 	Dart_EnterScope();
 
 	Dart_Handle url = checkError( Dart_NewStringFromCString( scriptPath ) );
@@ -293,6 +302,15 @@ void DartTestApp::closeFileCallback(void* file)
 	fclose(reinterpret_cast<FILE*>(file));
 }
 
+void DartTestApp::keyDown( KeyEvent event )
+{
+	if( event.getChar() == 'r') {
+		LOG_V << "reload." << endl;
+		Dart_EnterIsolate( mIsolate );
+		Dart_ShutdownIsolate();
+		loadScript();
+	}
+}
 
 void DartTestApp::update()
 {

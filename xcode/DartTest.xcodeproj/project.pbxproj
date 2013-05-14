@@ -12,7 +12,6 @@
 		00B784B40FF439BC000DE1D7 /* AudioToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 00B784B00FF439BC000DE1D7 /* AudioToolbox.framework */; };
 		00B784B50FF439BC000DE1D7 /* AudioUnit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 00B784B10FF439BC000DE1D7 /* AudioUnit.framework */; };
 		00B784B60FF439BC000DE1D7 /* CoreAudio.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 00B784B20FF439BC000DE1D7 /* CoreAudio.framework */; };
-		1188A404173EFC280075D5BA /* main.dart in Resources */ = {isa = PBXBuildFile; fileRef = 1188A403173EFC280075D5BA /* main.dart */; };
 		1188A45C173F59EF0075D5BA /* libdart_builtin.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 1188A456173F59EE0075D5BA /* libdart_builtin.a */; };
 		1188A45D173F59EF0075D5BA /* libdart_lib_withcore.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 1188A457173F59EE0075D5BA /* libdart_lib_withcore.a */; };
 		1188A45E173F59EF0075D5BA /* libdart_vm.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 1188A458173F59EE0075D5BA /* libdart_vm.a */; };
@@ -37,7 +36,6 @@
 		08FE9FED4FB740A5B98ECFB0 /* DartTestApp.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.cpp; name = DartTestApp.cpp; path = ../src/DartTestApp.cpp; sourceTree = "<group>"; };
 		0A9FFDF3DDFA416580DF3B7A /* CinderApp.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; name = CinderApp.icns; path = ../resources/CinderApp.icns; sourceTree = "<group>"; };
 		1058C7A1FEA54F0111CA2CBB /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = /System/Library/Frameworks/Cocoa.framework; sourceTree = "<absolute>"; };
-		1188A403173EFC280075D5BA /* main.dart */ = {isa = PBXFileReference; explicitFileType = text; fileEncoding = 4; name = main.dart; path = ../resources/main.dart; sourceTree = "<group>"; };
 		1188A456173F59EE0075D5BA /* libdart_builtin.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libdart_builtin.a; path = ../lib/libdart_builtin.a; sourceTree = "<group>"; };
 		1188A457173F59EE0075D5BA /* libdart_lib_withcore.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libdart_lib_withcore.a; path = ../lib/libdart_lib_withcore.a; sourceTree = "<group>"; };
 		1188A458173F59EE0075D5BA /* libdart_vm.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libdart_vm.a; path = ../lib/libdart_vm.a; sourceTree = "<group>"; };
@@ -45,6 +43,7 @@
 		1188A45A173F59EF0075D5BA /* libdouble_conversion.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libdouble_conversion.a; path = ../lib/libdouble_conversion.a; sourceTree = "<group>"; };
 		1188A45B173F59EF0075D5BA /* libjscre.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libjscre.a; path = ../lib/libjscre.a; sourceTree = "<group>"; };
 		1188A462173F59F90075D5BA /* snapshot_gen.bin */ = {isa = PBXFileReference; lastKnownFileType = archive.macbinary; name = snapshot_gen.bin; path = ../lib/snapshot_gen.bin; sourceTree = "<group>"; };
+		11D700DA174220D900890680 /* main.dart */ = {isa = PBXFileReference; lastKnownFileType = text; name = main.dart; path = ../assets/main.dart; sourceTree = "<group>"; };
 		29B97324FDCFA39411CA2CEA /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = /System/Library/Frameworks/AppKit.framework; sourceTree = "<absolute>"; };
 		29B97325FDCFA39411CA2CEA /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = /System/Library/Frameworks/Foundation.framework; sourceTree = "<absolute>"; };
 		437F248E2A974A58826C7BF2 /* DartTest_Prefix.pch */ = {isa = PBXFileReference; lastKnownFileType = "\"\""; path = DartTest_Prefix.pch; sourceTree = "<group>"; };
@@ -81,7 +80,7 @@
 		080E96DDFE201D6D7F000001 /* Source */ = {
 			isa = PBXGroup;
 			children = (
-				1188A403173EFC280075D5BA /* main.dart */,
+				11D700DA174220D900890680 /* main.dart */,
 				437F248E2A974A58826C7BF2 /* DartTest_Prefix.pch */,
 				08FE9FED4FB740A5B98ECFB0 /* DartTestApp.cpp */,
 			);
@@ -215,7 +214,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				53B8EC20F8504FD190C8FA4F /* CinderApp.icns in Resources */,
-				1188A404173EFC280075D5BA /* main.dart in Resources */,
 				1188A463173F59F90075D5BA /* snapshot_gen.bin in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

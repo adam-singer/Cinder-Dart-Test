@@ -23,6 +23,6 @@ void main() {
   print( "the answer is $answer" );
   
   // circleColor( [1, 0, 0, 1] ); // won't work unless I handle integers in native CircleColor
-  circleColor( [1.0, 0.2, 0.7, 1.0] );
-  circleSegments( 5 );
+  circleColor( [0.4, 0.2, 0.9, 1.0] );
+  circleSegments( 230 );
 }
