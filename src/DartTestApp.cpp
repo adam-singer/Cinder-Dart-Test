@@ -15,14 +15,16 @@ const char* VM_FLAGS[] = {
 #define LOG_V ci::app::console() << __func__ << " | "
 #define LOG_E LOG_V << __LINE__ << " | " << " *** ERROR *** : "
 
-#define CHECK_RESULT(result)					\
-if (Dart_IsError(result)) {						\
-	*error = strdup(Dart_GetError(result));		\
-	LOG_E << *error;							\
-	Dart_ExitScope();							\
-	Dart_ShutdownIsolate();						\
-	return false;								\
+#define CHECK_RESULT(result)						\
+if (Dart_IsError(result)) {							\
+	LOG_E << Dart_GetError(result) << std::endl;	\
+	assert( 0 );									\
 }
+
+using namespace ci;
+using namespace ci::app;
+using namespace std;
+
 
 struct FunctionLookup {
 	const char* name;
@@ -30,7 +32,6 @@ struct FunctionLookup {
 };
 
 const char* GetArgAsString(Dart_NativeArguments arguments, int idx) {
-	char** error;
 	Dart_Handle handle = Dart_GetNativeArgument( arguments, idx );
 	CHECK_RESULT( handle );
 	uint8_t* str;
@@ -47,8 +48,48 @@ void Log(Dart_NativeArguments arguments) {
 	Dart_ExitScope();
 }
 
+static ColorA sCircleColor = ColorA::white();
+static size_t sCircleSegments = 5;
+
+void CircleColor( Dart_NativeArguments arguments ) {
+	Dart_EnterScope();
+	Dart_Handle handle = Dart_GetNativeArgument( arguments, 0 );
+
+	if( ! Dart_IsList( handle ) ) {
+		LOG_E << "expected list." << endl;
+		Dart_ExitScope();
+		return;
+	}
+
+    intptr_t length;
+	CHECK_RESULT( Dart_ListLength( handle, &length ) );
+
+	for( int i = 0; i < length; i++ ) {
+		Dart_Handle vHandle = Dart_ListGetAt( handle, i );
+		double v;
+		CHECK_RESULT( Dart_DoubleValue( vHandle, &v ) );
+		LOG_V << v << endl;
+		sCircleColor[i] = v;
+	}
+
+	Dart_ExitScope();
+}
+
+void CircleSegments( Dart_NativeArguments arguments ) {
+	Dart_EnterScope();
+	Dart_Handle handle = Dart_GetNativeArgument( arguments, 0 );
+	int64_t value;
+	CHECK_RESULT( Dart_IntegerToInt64( handle, &value ) );
+	LOG_V << "value: " << value << endl;
+	sCircleSegments = value;
+	Dart_ExitScope();
+}
+
 FunctionLookup function_list[] = {
     {"Log", Log},
+    {"CircleColor", CircleColor},
+    {"CircleSegments", CircleSegments},
+	{NULL, NULL}
 };
 
 Dart_NativeFunction ResolveName(Dart_Handle name, int argc) {
@@ -56,7 +97,6 @@ Dart_NativeFunction ResolveName(Dart_Handle name, int argc) {
 	Dart_NativeFunction result = NULL;
 	Dart_EnterScope();
 	const char* cname;
-	char** error; // TODO: this should be in the check result macro
 	CHECK_RESULT( Dart_StringToCString( name, &cname ) );
 	for (int i = 0; function_list[i].name != NULL; ++i) {
 		if (strcmp(function_list[i].name, cname) == 0) {
@@ -67,10 +107,6 @@ Dart_NativeFunction ResolveName(Dart_Handle name, int argc) {
 	Dart_ExitScope();
 	return result;
 }
-
-using namespace ci;
-using namespace ci::app;
-using namespace std;
 
 class DartTestApp : public AppNative {
   public:
@@ -264,7 +300,10 @@ void DartTestApp::update()
 
 void DartTestApp::draw()
 {
-	gl::clear();
+	gl::clear( Color::black() );
+
+	gl::color( sCircleColor );
+	gl::drawSolidCircle( getWindowCenter(), 150, sCircleSegments );
 }
 
 CINDER_APP_NATIVE( DartTestApp, RendererGl )
