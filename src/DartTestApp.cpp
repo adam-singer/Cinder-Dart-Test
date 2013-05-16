@@ -31,6 +31,19 @@ struct FunctionLookup {
 	Dart_NativeFunction function;
 };
 
+struct DScope {
+	DScope() { Dart_EnterScope(); }
+	~DScope() { Dart_ExitScope(); }
+};
+
+Dart_Handle NewString(const char* str) {
+	return Dart_NewStringFromCString(str);
+}
+
+Dart_Handle NewInt( int i ) {
+	return Dart_NewInteger( i );
+}
+
 const char* GetArgAsString(Dart_NativeArguments arguments, int idx) {
 	Dart_Handle handle = Dart_GetNativeArgument( arguments, idx );
 	CHECK_RESULT( handle );
@@ -44,52 +57,152 @@ const char* GetArgAsString(Dart_NativeArguments arguments, int idx) {
 
 void Log(Dart_NativeArguments arguments) {
 	Dart_EnterScope();
-	std::cout << GetArgAsString(arguments, 0) << std::endl;
+	LOG_V << GetArgAsString(arguments, 0) << std::endl;
 	Dart_ExitScope();
+}
+
+std::string GetString( Dart_Handle handle ) {
+	const char* result;
+	CHECK_RESULT( Dart_StringToCString( handle, &result ) );
+	return string( result );
+}
+
+int GetInt( Dart_Handle handle ) {
+	int64_t result;
+	CHECK_RESULT( Dart_IntegerToInt64( handle, &result ) );
+	return static_cast<int>( result );
+}
+
+float GetFloat( Dart_Handle handle ) {
+	double result;
+	CHECK_RESULT( Dart_DoubleValue( handle, &result ) );
+	return static_cast<float>( result );
+}
+
+bool HasFunction( Dart_Handle handle, const string &name ) {
+	Dart_Handle result = Dart_LookupFunction( handle, NewString( name.c_str() ) );
+	CHECK_RESULT( result );
+	return ! Dart_IsNull( result );
+}
+
+Dart_Handle CallFunction( Dart_Handle target, const string &name, int numArgs = 0, Dart_Handle *args = nullptr ) {
+	Dart_Handle result = Dart_Invoke( target, NewString( name.c_str() ), numArgs, args );
+	CHECK_RESULT( result );
+	return result;
+}
+
+Dart_Handle GetField( Dart_Handle container, const string &name ) {
+	Dart_Handle result = Dart_GetField( container,  NewString( name.c_str() ) );
+	CHECK_RESULT( result );
+	return result;
 }
 
 // TODO: may be able to use Dart_CurrentIsolateData to associate these values with app instance
 static ColorA sCircleColor = ColorA::white();
 static size_t sCircleSegments = 5;
 
-void CircleColor( Dart_NativeArguments arguments ) {
-	Dart_EnterScope();
-	Dart_Handle handle = Dart_GetNativeArgument( arguments, 0 );
+void SetColorFromList( Dart_Handle handle ) {
+	LOG_V << "bang" << endl;
 
 	if( ! Dart_IsList( handle ) ) {
 		LOG_E << "expected list." << endl;
-		Dart_ExitScope();
 		return;
 	}
 
     intptr_t length;
 	CHECK_RESULT( Dart_ListLength( handle, &length ) );
 
+	console() << "\t- value: ";
 	for( int i = 0; i < length; i++ ) {
 		Dart_Handle vHandle = Dart_ListGetAt( handle, i );
-		double v;
-		CHECK_RESULT( Dart_DoubleValue( vHandle, &v ) );
-		LOG_V << v << endl;
-		sCircleColor[i] = v;
-	}
+		// TODO: set from other types too
+		float value = 0;
+		if( Dart_IsDouble( vHandle ) )
+			value = GetFloat( vHandle );
+		else if( Dart_IsNumber( vHandle ) )
+			value = static_cast<float>( GetInt( vHandle ) );
+		else
+			LOG_E << "vHandle is not of type double nor int" << endl;
 
-	Dart_ExitScope();
+		console() << value << ", ";
+		sCircleColor[i] = value;
+	}
+	console() << endl;
 }
 
-void CircleSegments( Dart_NativeArguments arguments ) {
-	Dart_EnterScope();
-	Dart_Handle handle = Dart_GetNativeArgument( arguments, 0 );
-	int64_t value;
-	CHECK_RESULT( Dart_IntegerToInt64( handle, &value ) );
-	LOG_V << "value: " << value << endl;
+void SetSegmentsFromInt( Dart_Handle handle ) {
+	int value = 0;
+	if( Dart_IsInteger( handle ) )
+		value = GetInt( handle );
+	else
+		LOG_E << "handle is not of type int" << endl;
+	console() << "\t- value: " << value << endl;
 	sCircleSegments = value;
-	Dart_ExitScope();
+
+}
+
+void SubmitToCinder( Dart_NativeArguments arguments ) {
+	DScope enterScope;
+	Dart_Handle handle = Dart_GetNativeArgument( arguments, 0 );
+
+	if( ! Dart_IsInstance( handle ) ) {
+		LOG_E << "not a dart instance." << endl;
+		return;
+	}
+
+	Dart_Handle instanceClass = Dart_InstanceGetClass( handle );
+	CHECK_RESULT( instanceClass );
+	Dart_Handle className = Dart_ClassName( instanceClass );
+	CHECK_RESULT( className );
+
+	string nameString = GetString( className );
+	LOG_V << "class name: " << nameString << endl;
+
+	// TODO: use Dart_ObjectIsType to ensure the class is of type Map
+	if( ! HasFunction( instanceClass, "keys" ) ) {
+		LOG_V << "no keys method, this is probably not of type Map" << endl;
+		return;
+	}
+
+	// get keys:
+
+	// ???: why does this return true, but Dart_Invoke() fails - you must use Dart_GetField instead.
+	if( HasFunction( instanceClass, "length" ) ) {
+		LOG_V << "has length function" << endl;
+	}
+
+	Dart_Handle length = GetField( handle, "length" );
+
+	int numEntries = GetInt( length );
+	LOG_V << "numEntries: " << numEntries << endl;
+
+	Dart_Handle keys = GetField( handle, "keys" );
+
+	Dart_Handle lengthIter = GetField( keys, "length" );
+	int lenIter = GetInt( lengthIter );
+	LOG_V << "lenIter: " << lenIter << endl;
+
+	assert( numEntries == lenIter );
+
+	for( size_t i = 0; i < lenIter; i++ ) {
+		Dart_Handle args[] = { NewInt( i ) };
+		Dart_Handle key = CallFunction( keys, "elementAt", 1, args );
+		string keyString = GetString( key );
+		console() << "\t- key: " << keyString << endl;
+
+		args[0] = key;
+		Dart_Handle value = CallFunction( handle, "[]", 1, args );
+
+		if( keyString == "color" )
+			SetColorFromList( value );
+		if( keyString == "segments" )
+			SetSegmentsFromInt( value );
+	}
 }
 
 FunctionLookup function_list[] = {
     {"Log", Log},
-    {"CircleColor", CircleColor},
-    {"CircleSegments", CircleSegments},
+	{"SubmitToCinder", SubmitToCinder },
 	{NULL, NULL}
 };
 

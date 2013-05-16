@@ -1,6 +1,7 @@
+void setup() {}
 
-void setup() {
-}
+void log( String what ) native "Log";
+void toCinder( var obj ) native "SubmitToCinder";
 
 get _printClosure => (s) {
   try {
@@ -10,19 +11,16 @@ get _printClosure => (s) {
   }
 };
 
-void log(String what) native "Log";
-
-void circleColor( var color ) native "CircleColor";
-void circleSegments(int count) native "CircleSegments";
-
-
 void main() {
-  print("hello dart.");
+  print("hello cinder, dart out.");
   
-  var answer = 23 * 4 / 2;
-  print( "the answer is $answer" );
-  
-  // circleColor( [1, 0, 0, 1] ); // won't work unless I handle integers in native CircleColor
-  circleColor( [0.4, 0.2, 0.9, 1.0] );
-  circleSegments( 230 );
+  var m = {
+    'a' : 1,
+    'b' : 2,
+    'color' : [1, 0, 0, 1],
+    'segments' : 12
+  };
+  // print( 'm: $m' );
+
+  toCinder( m );
 }
