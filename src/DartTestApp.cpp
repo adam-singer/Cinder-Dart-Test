@@ -25,6 +25,29 @@ using namespace ci;
 using namespace ci::app;
 using namespace std;
 
+class DartTestApp : public AppNative {
+public:
+	void setup();
+	void update();
+	void keyDown( KeyEvent event ) override;
+	void draw();
+
+	static Dart_Isolate createIsolateAndSetup(const char* script_uri, const char* main, void* data, char** error);
+	static Dart_Handle libraryTagHandler( Dart_LibraryTag tag, Dart_Handle library, Dart_Handle urlHandle );
+	static Dart_Handle checkError( Dart_Handle handle );
+	static void* openFileCallback(const char* name, bool write);
+	static void readFileCallback(const uint8_t** data, intptr_t* fileLength, void* stream );
+	static void writeFileCallback(const void* data, intptr_t length, void* file);
+	static void closeFileCallback(void* file);
+
+	void loadScript();
+	void invoke( const char* function, int argc = 0, Dart_Handle* args = NULL );
+
+	Dart_Isolate mIsolate;
+
+	ColorA mCircleColor;
+	size_t mCircleSegments;
+};
 
 struct FunctionLookup {
 	const char* name;
@@ -97,22 +120,17 @@ Dart_Handle GetField( Dart_Handle container, const string &name ) {
 	return result;
 }
 
-// TODO: may be able to use Dart_CurrentIsolateData to associate these values with app instance
-static ColorA sCircleColor = ColorA::white();
-static size_t sCircleSegments = 5;
-
 void SetColorFromList( Dart_Handle handle ) {
-	LOG_V << "bang" << endl;
-
 	if( ! Dart_IsList( handle ) ) {
 		LOG_E << "expected list." << endl;
 		return;
 	}
 
+	ColorA color = ColorA::black(); // preset so if alpha is not provided, it is already there
+
     intptr_t length;
 	CHECK_RESULT( Dart_ListLength( handle, &length ) );
 
-	console() << "\t- value: ";
 	for( int i = 0; i < length; i++ ) {
 		Dart_Handle vHandle = Dart_ListGetAt( handle, i );
 		// TODO: set from other types too
@@ -124,10 +142,13 @@ void SetColorFromList( Dart_Handle handle ) {
 		else
 			LOG_E << "vHandle is not of type double nor int" << endl;
 
-		console() << value << ", ";
-		sCircleColor[i] = value;
+		color[i] = value;
 	}
-	console() << endl;
+
+	console() << "\t\t- value: " << color << endl;;
+
+	DartTestApp *app = static_cast<DartTestApp *>( Dart_CurrentIsolateData() );
+	app->mCircleColor = color;
 }
 
 void SetSegmentsFromInt( Dart_Handle handle ) {
@@ -136,9 +157,10 @@ void SetSegmentsFromInt( Dart_Handle handle ) {
 		value = GetInt( handle );
 	else
 		LOG_E << "handle is not of type int" << endl;
-	console() << "\t- value: " << value << endl;
-	sCircleSegments = value;
+	console() << "\t\t- value: " << value << endl;
 
+	DartTestApp *app = static_cast<DartTestApp *>( Dart_CurrentIsolateData() );
+	app->mCircleSegments = value;
 }
 
 void SubmitToCinder( Dart_NativeArguments arguments ) {
@@ -180,8 +202,6 @@ void SubmitToCinder( Dart_NativeArguments arguments ) {
 
 	Dart_Handle lengthIter = GetField( keys, "length" );
 	int lenIter = GetInt( lengthIter );
-	LOG_V << "lenIter: " << lenIter << endl;
-
 	assert( numEntries == lenIter );
 
 	for( size_t i = 0; i < lenIter; i++ ) {
@@ -222,29 +242,15 @@ Dart_NativeFunction ResolveName(Dart_Handle name, int argc) {
 	return result;
 }
 
-class DartTestApp : public AppNative {
-  public:
-	void setup();
-	void update();
-	void keyDown( KeyEvent event ) override;
-	void draw();
-
-	static Dart_Isolate createIsolateAndSetup(const char* script_uri, const char* main, void* data, char** error);
-	static Dart_Handle libraryTagHandler( Dart_LibraryTag tag, Dart_Handle library, Dart_Handle urlHandle );
-	static Dart_Handle checkError( Dart_Handle handle );
-	static void* openFileCallback(const char* name, bool write);
-	static void readFileCallback(const uint8_t** data, intptr_t* fileLength, void* stream );
-	static void writeFileCallback(const void* data, intptr_t length, void* file);
-	static void closeFileCallback(void* file);
-
-	void loadScript();
-	void invoke( const char* function, int argc = 0, Dart_Handle* args = NULL );
-
-	Dart_Isolate mIsolate;
-};
+// ----------------------------------------------------------------------------------------------------
+// MARK: - App
+// ----------------------------------------------------------------------------------------------------
 
 void DartTestApp::setup()
 {
+	mCircleColor = ColorA::white();
+	mCircleSegments = 5;
+
 
 	// init dart and create Isolate
 	LOG_V << "Setting VM Options" << endl;
@@ -264,14 +270,13 @@ void DartTestApp::loadScript()
 	DataSourceRef script = loadAsset( "main.dart" );
 	const char *scriptPath = script->getFilePath().c_str();
 	char *error = NULL;
-	mIsolate = createIsolateAndSetup( scriptPath, "main", NULL, &error );
+	mIsolate = createIsolateAndSetup( scriptPath, "main", this, &error );
 	if( ! mIsolate ) {
 		LOG_E << "could not create isolate: " << error << endl;
 		assert( 0 );
 	}
 	assert( mIsolate == Dart_CurrentIsolate() );
 
-//	Dart_EnterIsolate( mIsolate );
 	Dart_EnterScope();
 
 	Dart_Handle url = checkError( Dart_NewStringFromCString( scriptPath ) );
@@ -433,8 +438,8 @@ void DartTestApp::draw()
 {
 	gl::clear( Color::black() );
 
-	gl::color( sCircleColor );
-	gl::drawSolidCircle( getWindowCenter(), 150, sCircleSegments );
+	gl::color( mCircleColor );
+	gl::drawSolidCircle( getWindowCenter(), 150, mCircleSegments );
 }
 
 CINDER_APP_NATIVE( DartTestApp, RendererGl )
